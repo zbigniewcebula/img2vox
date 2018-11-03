@@ -1,10 +1,18 @@
+#if 0
+#!/bin/bash
+g++ main.cpp --std=c++11 -L/usr/X11R6/lib -lm -lpthread -lX11 -o _main && _main
+exit
+#endif
+
 #pragma comment(lib, "gdi32.lib")
 //cls && g++ main.cpp --std=c++11 -lgdi32 -o main.exe && main.exe
 
 #include <iostream>
 #include <map>
 #include <cmath>
-#include <windows.h>
+#ifdef _WIN32
+	#include <windows.h>
+#endif
 
 #include "CImg.h"
 #include "MagicaVoxel.h"
