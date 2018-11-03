@@ -14,6 +14,10 @@ exit
 	#include <windows.h>
 #endif
 
+typedef unsigned char	uchar;
+typedef unsigned short	ushort;
+typedef unsigned int	uint;
+
 #include "CImg.h"
 #include "MagicaVoxel.h"
 #include "MagicaVoxelSave.h"
@@ -22,8 +26,8 @@ using namespace std;
 using namespace cimg_library;
 
 int main(int argc, char** argv) {
-	if (argc < 3 || argc > 4) {
-		cerr	<< "ERROR! Usage: img2vox IMG.* OUT.vox [Z canvas height]" << endl; 
+	if (argc < 3 || argc > 5) {
+		cerr	<< "ERROR! Usage: img2vox IMG.* OUT.vox [Z canvas height] [PALETTE.png]" << endl; 
 		return 1;
 	}
 
@@ -89,9 +93,23 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	cout	<< "VOX Palette remaping..." << endl;
+	cout	<< "VOX Palette remaping and palette file generation..." << endl;
+
+	CImg<unsigned char> palette(256, 1, 1, 4, 0);
+
 	for(auto it = pal.begin(); it != pal.end(); ++it) {
-		model.palette[it->second - 1].val	= it->first;
+		uchar idx	= it->second - 1;
+		v4	clr(it->first);
+		model.palette[idx].val	= clr.val;
+		palette(idx, 0, 0, 0)	= clr.r;
+		palette(idx, 0, 0, 1)	= clr.g;
+		palette(idx, 0, 0, 2)	= clr.b;
+		palette(idx, 0, 0, 3)	= clr.a;
+	}
+	if (argc == 5) {
+		palette.save(argv[4]);
+	} else {
+		palette.save("palette.png");
 	}
 
 	cout	<< "VOX File save...";
