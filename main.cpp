@@ -34,15 +34,15 @@ int main(int argc, char** argv) {
 
 	string	name = argv[2];
 
-	cout	<< "Image loading...";
+	cout	<< name << ": [IMG] Loading... ";
 	CImg<unsigned char> image(argv[1]);
-	cout	<< " DONE!" << endl;
+	cout	<< "DONE! ";
 
 	map<uint, int>	pal;
 	map<uint, int>	palPos;
-	int				palCount	= 0;
+	int				palCount	= 1;
 
-	cout	<< "Palette loading and mapping";
+	cout	<< " Palette loading and mapping";
 	for(int y = 0; y < image.height(); ++y) {
 		for(int x = 0; x < image.width(); ++x) {
 			v4	pos(x, image.height() - 1 - y, 0, 0);
@@ -58,17 +58,23 @@ int main(int argc, char** argv) {
 				pal[pix.val]	= palCount;
 				it				= pal.find(pix.val);
 				++palCount;
+
 				cout << ".";
 			}
 
-			if (pix.a > 0) {
+			if (!(pix.r == 0 && pix.g == 0 && pix.b == 0)
+			&&	!(pix.r == 0xFF && pix.g == 0xFF && pix.b == 0xFF)
+			) {
 				palPos[pos.val]	= it->second;
+				//cout << "X";
 			} else {
-				palPos[pos.val]	= 255;
+				palPos[pos.val]	= 0;
+				//cout << " ";
 			}
 		}
+		//cout << endl;
 	}
-	cout << endl;
+	cout << " DONE!" << endl;
 	if (palCount > 255) {
 		cerr	<< "ERROR! Too many colors in image (limited palette to 256)!" << endl;
 		return 1;
@@ -80,7 +86,7 @@ int main(int argc, char** argv) {
 	}
 
 
-	cout	<< "VOX generation..." << endl;
+	cout	<< name << ": [VOX] Generation, ";
 	VOX		model;
 	model.setSize(image.width(), image.height(), zHeight);
 
@@ -96,7 +102,7 @@ int main(int argc, char** argv) {
 		}
 	}
 
-	cout	<< "VOX Palette remaping and palette file generation..." << endl;
+	cout	<< "Palette remaping and palette file generation, ";
 
 	CImg<unsigned char> palette(256, 1, 1, 4, 0);
 
@@ -111,25 +117,9 @@ int main(int argc, char** argv) {
 	}
 	palette.save((name + ".png").c_str());
 
-	cout	<< "VOX File save...";
+	cout	<< "File save... ";
 	model.save((name + ".vox").c_str());
-	cout	<< " DONE!" << endl;
-
-	/*
-	cout	<< "MTL generation for OBJ file..." << endl;
-	ofstream	hMTL((name + ".mtl").c_str(), ios::trunc | ios::out);
-
-	hMTL	<<	"newmtl palette" << endl
-			<<	"illum 1" << endl
-			<<	"Ka 0.000 0.000 0.000" << endl
-			<<	"Kd 1.000 1.000 1.000" << endl
-			<<	"Ks 0.000 0.000 0.000" << endl
-			<<	"map_Kd castle.png" << endl
-	<< endl;
-
-	hMTL.flush();
-	hMTL.close();
-	*/
+	cout	<< "DONE!" << endl;
 
 	return 0;
 }

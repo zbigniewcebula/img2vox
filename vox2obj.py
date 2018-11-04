@@ -24,6 +24,7 @@
 #"""
 import math
 import ntpath
+import os
 
 class AAQuad:
 	#""" A solid colored axis aligned quad. """
@@ -401,7 +402,7 @@ def importObj(stream):
 			pass
 	return faces
 
-def exportObj(stream, aaQuads, fileNameNoExt):
+def exportObj(stream, aaQuads, mtlFileName):
 	# gather some of the needed information
 	faces = aaQuads
 	# copy the normals from AAQuad (99% of cases will use all directions)
@@ -432,17 +433,16 @@ def exportObj(stream, aaQuads, fileNameNoExt):
 		fLines.append(' '.join(fLine) + '\n')
 
 	#write mtl
-	fileNameNoExt = ntpath.basename(fileNameNoExt).replace(".obj", "")
-	mtl = open(fileNameNoExt + '.mtl', mode='w')
+	mtl = open(mtlFileName, mode='w')
 	mtl.write('newmtl palette\n')
 	mtl.write('illum 1\n')
 	mtl.write('Ka 0.000 0.000 0.000\n')
 	mtl.write('Kd 1.000 1.000 1.000\n')
 	mtl.write('Ks 0.000 0.000 0.000\n')
-	mtl.write('map_Kd ' + fileNameNoExt + '.png\n')
+	mtl.write('map_Kd ' + os.path.basename(mtlFileName).replace(".mtl", ".png") + '\n')
 
 	# write to the file
-	stream.write('mtllib ' + fileNameNoExt + '.mtl\n')
+	stream.write('mtllib ' + os.path.basename(mtlFileName) + '\n')
 	stream.write('usemtl palette\n')
 	stream.write('\n')
 	if len(normals) > 0:
@@ -582,7 +582,7 @@ def exportAll():
 			objName = os.path.splitext(fileName)[0]
 			rawQuads = vox.toQuads()
 			with open(os.path.join(outDir, objName + '.obj'), mode='w') as file:
-				vCount, qCount = exportObj(file, rawQuads, objName)
+				vCount, qCount = exportObj(file, rawQuads, os.path.join(outDir, objName + '.mtl'))
 			print('\texported', vCount, 'vertices,', qCount, 'quads')
 			if optimizing:
 				# TODO
@@ -591,7 +591,7 @@ def exportAll():
 				bucketHash(optiFaces, *vox.getBounds())
 				with open(os.path.join(outDir, objName + '.greedy.obj'),
 						  mode='w') as file:
-					exportObj(file, optiFaces, objName)
+					exportObj(file, optiFaces, os.path.join(outDir, objName + '.mtl'))
 
 def byPrompt():
 	import os, os.path
