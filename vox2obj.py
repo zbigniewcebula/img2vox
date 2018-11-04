@@ -1,31 +1,32 @@
-"""
-	This script is designed to export a mass amount of MagicaVoxel .vox files
-	to .obj. Unlike Magica's internal exporter, this exporter preserves the
-	voxel vertices for easy manipulating in a 3d modeling program like Blender.
-	
-	Various meshing algorithms are included (or to be included). MagicaVoxel
-	uses monotone triangulation (I think). The algorithms that will (or do)
-	appear in this script will use methods to potentially reduce rendering
-	artifacts that could be introduced by triangulation of this nature.
-	
-	I may also include some features like light map generation for easy
-	importing into Unreal Engine, etc.
-	
-	Notes:
-		* There may be a few floating point equality comparisons. They seem to
-			work but it scares me a little.
-		* TODO: use constants instead of magic numbers (as defined in AAQuad),
-				(i.e., ..., 2 -> AAQuad.TOP, ...)
-		* A lot of assertions should probably be exceptions since they are
-			error checking user input (this sounds really bad now that I've put
-			it on paper...). So don't run in optimized mode (who does that
-			anyways?).
-		* I am considering adding FBX support.
-"""
+#"""
+#	This script is designed to export a mass amount of MagicaVoxel .vox files
+#	to .obj. Unlike Magica's internal exporter, this exporter preserves the
+#	voxel vertices for easy manipulating in a 3d modeling program like Blender.
+#	
+#	Various meshing algorithms are included (or to be included). MagicaVoxel
+#	uses monotone triangulation (I think). The algorithms that will (or do)
+#	appear in this script will use methods to potentially reduce rendering
+#	artifacts that could be introduced by triangulation of this nature.
+#	
+#	I may also include some features like light map generation for easy
+#	importing into Unreal Engine, etc.
+#	
+#	Notes:
+#		* There may be a few floating point equality comparisons. They seem to
+#			work but it scares me a little.
+#		* TODO: use constants instead of magic numbers (as defined in AAQuad),
+#				(i.e., ..., 2 -> AAQuad.TOP, ...)
+#		* A lot of assertions should probably be exceptions since they are
+#			error checking user input (this sounds really bad now that I've put
+#			it on paper...). So don't run in optimized mode (who does that
+#			anyways?).
+#		* I am considering adding FBX support.
+#"""
 import math
+import ntpath
 
 class AAQuad:
-	""" A solid colored axis aligned quad. """
+	#""" A solid colored axis aligned quad. """
 	normals = [
 		(-1, 0, 0), # left = 0
 		(1, 0, 0),  # right = 1
@@ -41,7 +42,7 @@ class AAQuad:
 	FRONT = 4
 	BACK = 5
 	def __init__(self, verts, uv=None, normal=None):
-		assert len(verts) == 4, "face must be a quad"
+		assert len(verts) == 4, 'face must be a quad'
 		self.vertices = verts
 		self.uv = uv
 		self.normal = normal
@@ -75,7 +76,7 @@ def optimizedGreedyMesh(faces):
 	return faces
 
 def adjacencyGraphEdges(faces):
-	""" Get the list of edges representing adjacent faces. """
+	#""" Get the list of edges representing adjacent faces. """
 	# a list of edges, where edges are tuple(face_a, face_b)
 	edges = []
 	# build the list of edges in the graph
@@ -90,9 +91,9 @@ def adjacencyGraphEdges(faces):
 	return edges
 
 def contiguousFaces(faces, adjacencyGraphEdges):
-	""" Get the list of connected components from a list of graph edges.
-		The list will contain lists containing the edges within the components.
-	"""
+	#""" Get the list of connected components from a list of graph edges.
+	#	The list will contain lists containing the edges within the components.
+	#"""
 	groups = []
 	visited = dict((f, False) for f in faces)
 	for face in faces:
@@ -105,13 +106,13 @@ def contiguousFaces(faces, adjacencyGraphEdges):
 	return groups
 
 def _visitGraphNodes(node, edges, visited, component):
-	""" Recursive routine used in findGraphComponents """
+	#""" Recursive routine used in findGraphComponents """
 	# visit every component connected to this one
 	for edge in edges:
 		# for all x in nodes, (node, x) and (x, node) should be in edges!
 		# therefore we don't have to check for "edge[1] is node"
 		if edge[0] is node and not visited[edge[1]]:
-			assert edge[1] is not node, "(node, node) should not be in edges"
+			assert edge[1] is not node, '(node, node) should not be in edges'
 			# mark the other node as visited
 			visited[edge[1]] = True
 			component.append(edge[1])
@@ -119,11 +120,11 @@ def _visitGraphNodes(node, edges, visited, component):
 			_visitGraphNodes(edge[1], edges, visited, component)
 
 def facesAreAdjacent(a, b):
-	""" Adjacent is defined as same normal, uv, and a shared edge.
-		This isn't entirely intuitive (i.e., corner faces are not adjacent)
-		but this definition fits the problem domain.
-		Only works on AAQuads.
-	"""
+	#""" Adjacent is defined as same normal, uv, and a shared edge.
+	#	This isn't entirely intuitive (i.e., corner faces are not adjacent)
+	#	but this definition fits the problem domain.
+	#	Only works on AAQuads.
+	#"""
 	# note: None is == None, this shouldn't matter
 	if a.uv != b.uv:
 		return False
@@ -142,13 +143,13 @@ def facesAreAdjacent(a, b):
 	return False
 
 class GeoFace:
-	""" An arbitrary geometry face
-		This should only be used for arbitrary models, not ones we can
-		reasonably assume are axis aligned.
-	"""
+	#""" An arbitrary geometry face
+	#	This should only be used for arbitrary models, not ones we can
+	#	reasonably assume are axis aligned.
+	#"""
 	def __init__(self, verts, uvs=None, normals=None):
 		self.vertices = verts
-		assert len(verts) in (3, 4), "only quads and tris are supported"
+		assert len(verts) in (3, 4), 'only quads and tris are supported'
 		self.normals = normals
 		self.uvs = uvs
 	def toAAQuad(self, skipAssert=False):
@@ -157,19 +158,19 @@ class GeoFace:
 			if not skipAssert:
 				for i in self.normals:
 					assert self.normals[0] == i, \
-						"face must be axis aligned (orthogonal normals)"
+						'face must be axis aligned (orthogonal normals)'
 			q.normal = self.normals[0]
 		if self.uvs is not None and len(self.uvs) > 0:
 			if not skipAssert:
 				for i in self.uvs:
 					assert self.uvs[0] == i, \
-						"face must be axis aligned (orthogonal)"
+						'face must be axis aligned (orthogonal)'
 			q.uv = self.uvs[0]
 		return q
 
 class VoxelStruct:
-	""" Describes a voxel object
-	"""
+	#""" Describes a voxel object
+	#"""
 	def __init__(self):
 		# a dict is probably the best way to go about this
 		# (as a trade off between performance and code complexity)
@@ -188,8 +189,8 @@ class VoxelStruct:
 	def _index(self, x, y, z):
 		return z*(256**2) + y * 256 + x
 	def getBounds(self):
-		origin = (float("inf"), float("inf"), float("inf"))
-		maximum = (float("-inf"), float("-inf"), float("-inf"))
+		origin = (float('inf'), float('inf'), float('inf'))
+		maximum = (float('-inf'), float('-inf'), float('-inf'))
 		for key, voxel in self.voxels.items():
 			origin = (
 				min(origin[0], voxel.x),
@@ -203,7 +204,7 @@ class VoxelStruct:
 			)
 		return origin, maximum
 	def zeroOrigin(self):
-		""" Translate the model so that it's origin is at 0, 0, 0 """
+		#""" Translate the model so that it's origin is at 0, 0, 0 """
 		origin, maximum = self.getBounds()
 		result = {}
 		xOff, yOff, zOff = origin
@@ -216,7 +217,7 @@ class VoxelStruct:
 						   maximum[1] - yOff,
 						   maximum[2] - zOff)
 	def toQuads(self):
-		""" --> a list of AAQuads """
+		#""" --> a list of AAQuads """
 		faces = []
 		for key, voxel in self.voxels.items():
 			self._getObjFaces(voxel, faces)
@@ -309,10 +310,10 @@ class VoxelStruct:
 			(voxel.x, voxel.y + 1, voxel.z + 1)
 		)
 	def _objExposed(self, voxel):
-		""" --> a set of [0, 6) representing which voxel faces are shown
-			for the meaning of 0-5, see AAQuad.normals
-			get the sick truth about these voxels' dirty secrets...
-		"""
+		#""" --> a set of [0, 6) representing which voxel faces are shown
+		#	for the meaning of 0-5, see AAQuad.normals
+		#	get the sick truth about these voxels' dirty secrets...
+		#"""
 		# check left 0
 		side = self.getVoxel(voxel.x - 1, voxel.y, voxel.z)
 		s0 = side is None or side.colorIndex == 0
@@ -400,7 +401,7 @@ def importObj(stream):
 			pass
 	return faces
 
-def exportObj(stream, aaQuads):
+def exportObj(stream, aaQuads, fileNameNoExt):
 	# gather some of the needed information
 	faces = aaQuads
 	# copy the normals from AAQuad (99% of cases will use all directions)
@@ -429,8 +430,20 @@ def exportObj(stream, aaQuads):
 		vertices.extend(f.vertices)
 		indexOffset += len(f.vertices)
 		fLines.append(' '.join(fLine) + '\n')
+
+	#write mtl
+	fileNameNoExt = ntpath.basename(fileNameNoExt).replace(".obj", "")
+	mtl = open(fileNameNoExt + '.mtl', mode='w')
+	mtl.write('newmtl palette\n')
+	mtl.write('illum 1\n')
+	mtl.write('Ka 0.000 0.000 0.000\n')
+	mtl.write('Kd 1.000 1.000 1.000\n')
+	mtl.write('Ks 0.000 0.000 0.000\n')
+	mtl.write('map_Kd ' + fileNameNoExt + '.png\n')
+
 	# write to the file
-	stream.write('# shivshank\'s .obj optimizer\n')
+	stream.write('mtllib ' + fileNameNoExt + '.mtl\n')
+	stream.write('usemtl palette\n')
 	stream.write('\n')
 	if len(normals) > 0:
 		stream.write('# normals\n')
@@ -455,7 +468,7 @@ def exportObj(stream, aaQuads):
 	return len(vertices), len(fLines)
 
 def importVox(file):
-	""" --> a VoxelStruct from this .vox file stream """
+	#""" --> a VoxelStruct from this .vox file stream """
 	# in theory this could elegantly be many functions and classes
 	# but this is such a simple file format...
 	# refactor: ? should probably find a better exception type than value error
@@ -464,18 +477,18 @@ def importVox(file):
 	if magic != b'VOX ':
 		print('magic number is', magic)
 		if userAborts('This does not appear to be a VOX file. Abort?'):
-			raise ValueError("Invalid magic number")
+			raise ValueError('Invalid magic number')
 	# the file appears to use little endian consistent with RIFF
 	version = int.from_bytes(file.read(4), byteorder='little')
 	if version != 150:
 		if userAborts('Only version 150 is supported; this file: '
 					  + str(version) + '. Abort?'):
-			raise ValueError("Invalid file version")
+			raise ValueError('Invalid file version')
 	mainHeader = _readChunkHeader(file)
 	if mainHeader['id'] != b'MAIN':
 		print('chunk id:', mainId)
 		if userAborts('Did not find the main chunk. Abort?'):
-			raise ValueError("Did not find main VOX chunk. ")
+			raise ValueError('Did not find main VOX chunk. ')
 	#assert mainHeader['size'] == 0, "main chunk should have size 0"
 	# we don't need anything from the size or palette header!
 	# : we can figure out (minimum) bounds later from the voxel data
@@ -507,7 +520,7 @@ def importVox(file):
 def _readChunkHeader(buffer):
 	id = buffer.read(4)
 	if id == b'':
-		raise ValueError("Unexpected EOF, expected chunk header")
+		raise ValueError('Unexpected EOF, expected chunk header')
 	size = int.from_bytes(buffer.read(4), byteorder='little')
 	childrenSize = int.from_bytes(buffer.read(4), byteorder='little')
 	return {
@@ -523,9 +536,9 @@ def userAborts(msg):
 	return True
 
 def exportAll():
-	""" Uses a file to automatically export a bunch of files!
-		See this function for details on the what the file looks like.
-	"""
+	#""" Uses a file to automatically export a bunch of files!
+	#	See this function for details on the what the file looks like.
+	#"""
 	import os, os.path
 
 	with open('exporter.txt', mode='r') as file:
@@ -569,7 +582,7 @@ def exportAll():
 			objName = os.path.splitext(fileName)[0]
 			rawQuads = vox.toQuads()
 			with open(os.path.join(outDir, objName + '.obj'), mode='w') as file:
-				vCount, qCount = exportObj(file, rawQuads)
+				vCount, qCount = exportObj(file, rawQuads, objName)
 			print('\texported', vCount, 'vertices,', qCount, 'quads')
 			if optimizing:
 				# TODO
@@ -578,7 +591,7 @@ def exportAll():
 				bucketHash(optiFaces, *vox.getBounds())
 				with open(os.path.join(outDir, objName + '.greedy.obj'),
 						  mode='w') as file:
-					exportObj(file, optiFaces)
+					exportObj(file, optiFaces, objName)
 
 def byPrompt():
 	import os, os.path
@@ -619,14 +632,14 @@ def byPrompt():
 				outPath = os.path.join(outRoot, outFile)
 				print('exporting VOX to OBJ at path', outPath)
 				with open(outPath, mode='w') as file:
-					exportObj(file, vox.toQuads())
+					exportObj(file, vox.toQuads(), outPath)
 				if optimizing:
 					# TODO
 					pass
 	except KeyboardInterrupt:
 		pass
 
-if __name__ == "__main__":
+if __name__ == '__main__':
 	profiling = False
 	try:
 		import cProfile

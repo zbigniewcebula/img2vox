@@ -1,6 +1,6 @@
 #if 0
 #!/bin/bash
-g++ main.cpp --std=c++11 -L/usr/X11R6/lib -lm -lpthread -lX11 -o _main && _main
+g++ main.cpp -g --std=c++11 -L/usr/X11R6/lib -lm -lpthread -lX11 -o main_exe
 exit
 #endif
 
@@ -10,6 +10,7 @@ exit
 #include <iostream>
 #include <map>
 #include <cmath>
+#include <cstdlib>
 #ifdef _WIN32
 	#include <windows.h>
 #endif
@@ -26,10 +27,12 @@ using namespace std;
 using namespace cimg_library;
 
 int main(int argc, char** argv) {
-	if (argc < 3 || argc > 5) {
-		cerr	<< "ERROR! Usage: img2vox IMG.* OUT.vox [Z canvas height] [PALETTE.png]" << endl; 
+	if (argc < 3 || argc > 4) {
+		cerr	<< "ERROR! Usage: img2vox IMG.* OUT.vox [Z canvas height]" << endl; 
 		return 1;
 	}
+
+	string	name = argv[2];
 
 	cout	<< "Image loading...";
 	CImg<unsigned char> image(argv[1]);
@@ -106,17 +109,46 @@ int main(int argc, char** argv) {
 		palette(idx, 0, 0, 2)	= clr.b;
 		palette(idx, 0, 0, 3)	= clr.a;
 	}
-	if (argc == 5) {
-		palette.save(argv[4]);
-	} else {
-		palette.save("palette.png");
-	}
+	palette.save((name + ".png").c_str());
 
 	cout	<< "VOX File save...";
-	model.save(argv[2]);
+	model.save((name + ".vox").c_str());
 	cout	<< " DONE!" << endl;
+
+	/*
+	cout	<< "MTL generation for OBJ file..." << endl;
+	ofstream	hMTL((name + ".mtl").c_str(), ios::trunc | ios::out);
+
+	hMTL	<<	"newmtl palette" << endl
+			<<	"illum 1" << endl
+			<<	"Ka 0.000 0.000 0.000" << endl
+			<<	"Kd 1.000 1.000 1.000" << endl
+			<<	"Ks 0.000 0.000 0.000" << endl
+			<<	"map_Kd castle.png" << endl
+	<< endl;
+
+	hMTL.flush();
+	hMTL.close();
+	*/
+
 	return 0;
 }
+
+/*
+
+
+
+#ifndef _WIN32
+	cout	<< "===========<PYTHON>===========" << endl;
+	
+	system("python3 vox2obj.py");
+
+	cout	<< "^^^^^^^^^^^<PYTHON>^^^^^^^^^^^" << endl;
+
+	
+#endif
+
+*/
 
 /*
 	MV_Model	model;
